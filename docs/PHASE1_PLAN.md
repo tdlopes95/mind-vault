@@ -121,7 +121,7 @@ com.mindvault.app/
 
 ## Task Breakdown
 
-### Task 1 — Project Setup & Configuration
+### Task 1 — Project Setup & Configuration ✓ DONE
 
 **What to do:**
 - Create a new Android project (Empty Compose Activity)
@@ -147,7 +147,7 @@ com.mindvault.app/
 
 ---
 
-### Task 2 — Room Database & Data Layer
+### Task 2 — Room Database & Data Layer ✓ DONE
 
 **What to do:**
 - Create `NoteEntity.kt` with all fields from the schema above
@@ -209,7 +209,7 @@ com.mindvault.app/
 
 ---
 
-### Task 3 — Navigation Structure
+### Task 3 — Navigation Structure ✓ DONE
 
 **What to do:**
 - Create `Screen.kt` — sealed class/interface:
@@ -228,7 +228,7 @@ com.mindvault.app/
 
 ---
 
-### Task 4 — Home Screen
+### Task 4 — Home Screen ✓ DONE
 
 **What to do:**
 - Create `HomeViewModel.kt`:
@@ -262,7 +262,7 @@ com.mindvault.app/
 
 ---
 
-### Task 5 — Note Editor Screen
+### Task 5 — Note Editor Screen ✓ DONE
 
 **What to do:**
 - Create `NoteEditorViewModel.kt`:
@@ -284,11 +284,11 @@ com.mindvault.app/
   - Auto-save behavior: saves when navigating away (onPause equivalent)
 
 **Acceptance criteria:**
-- Can create a new note with title + content
-- Can edit an existing note
-- Auto-saves on back navigation
-- Color selection works and persists
-- Favorite toggle works
+- [x] Can create a new note with title + content
+- [x] Can edit an existing note
+- [x] Auto-saves on back navigation (via back arrow)
+- [x] Color selection works and persists
+- [x] Favorite toggle works
 
 ---
 
@@ -315,7 +315,7 @@ com.mindvault.app/
 
 ---
 
-### Task 7 — Reusable Components & Polish
+### Task 7 — Reusable Components & Polish ✓ DONE
 
 **What to do:**
 - `NoteCard.kt` — used in HomeScreen grid
@@ -393,17 +393,17 @@ Example prompt for Claude Code:
 ## Definition of Done — Phase 1
 
 Phase 1 is complete when:
-- [ ] App launches without crashes
-- [ ] User can create a new note via FAB
-- [ ] User can edit an existing note
-- [ ] User can delete a note (soft delete + undo)
-- [ ] User can favorite/unfavorite a note
-- [ ] User can archive a note
+- [x] App launches without crashes
+- [x] User can create a new note via FAB
+- [x] User can edit an existing note
+- [x] User can delete a note (soft delete + undo)
+- [x] User can favorite/unfavorite a note
+- [x] User can archive a note
 - [ ] Notes persist across app restarts
-- [ ] Search filters notes by title/content
-- [ ] Note colors work
-- [ ] Dark mode works
-- [ ] Empty state displays when no notes exist
-- [ ] Smooth navigation between screens
-- [ ] Code follows MVVM architecture
-- [ ] Hilt DI is wired correctly throughout
+- [x] Search filters notes by title/content
+- [x] Note colors work
+- [x] Dark mode works
+- [x] Empty state displays when no notes exist
+- [x] Smooth navigation between screens
+- [x] Code follows MVVM architecture
+- [x] Hilt DI is wired correctly throughout

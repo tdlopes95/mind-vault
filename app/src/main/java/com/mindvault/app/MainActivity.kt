@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import com.mindvault.app.ui.navigation.MindVaultNavHost
 import com.mindvault.app.ui.theme.MindVaultTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -16,8 +18,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MindVaultTheme {
-                Surface(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
-                    // NavHost will be wired here in Task 3
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    MindVaultNavHost()
                 }
             }
         }
