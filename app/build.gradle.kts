@@ -73,6 +73,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.datastore.preferences)
 
+    // Coil (image loading)
+    implementation(libs.coil.compose)
+
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
     androidTestImplementation(libs.coroutines.test)

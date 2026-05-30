@@ -13,4 +13,5 @@ data class Note(
     val deletedAt: Long? = null,
     val categoryId: Long? = null,
     val tags: List<Tag> = emptyList(),
+    val isPinned: Boolean = false,
 )

@@ -30,4 +30,5 @@ data class NoteEntity(
     val updatedAt: Long = System.currentTimeMillis(),
     val deletedAt: Long? = null,
     val categoryId: Long? = null,
+    val isPinned: Boolean = false,
 )

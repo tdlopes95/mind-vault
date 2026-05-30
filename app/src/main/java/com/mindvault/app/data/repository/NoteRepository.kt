@@ -43,6 +43,10 @@ class NoteRepository @Inject constructor(private val dao: NoteDao) : NoteReposit
     override suspend fun purgeOldDeletedNotes(cutoffTimestamp: Long) = dao.purgeOldDeletedNotes(cutoffTimestamp)
 
     override suspend fun assignCategory(noteId: Long, categoryId: Long?) = dao.assignCategory(noteId, categoryId)
+
+    override fun getPinnedNotes(): Flow<List<Note>> = dao.getPinnedNotes().map { it.map(NoteEntity::toDomain) }
+
+    override suspend fun togglePin(id: Long, isPinned: Boolean) = dao.togglePin(id, isPinned)
 }
 
 private fun NoteEntity.toDomain() = Note(
@@ -57,6 +61,7 @@ private fun NoteEntity.toDomain() = Note(
     updatedAt = updatedAt,
     deletedAt = deletedAt,
     categoryId = categoryId,
+    isPinned = isPinned,
 )
 
 private fun Note.toEntity() = NoteEntity(
@@ -71,4 +76,5 @@ private fun Note.toEntity() = NoteEntity(
     updatedAt = updatedAt,
     deletedAt = deletedAt,
     categoryId = categoryId,
+    isPinned = isPinned,
 )

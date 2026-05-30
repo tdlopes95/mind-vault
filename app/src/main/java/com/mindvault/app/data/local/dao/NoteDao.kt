@@ -2,6 +2,7 @@ package com.mindvault.app.data.local.dao
 
 import androidx.room.*
 import com.mindvault.app.data.local.entity.NoteEntity
+import com.mindvault.app.data.model.CategoryNoteCount
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -71,4 +72,13 @@ interface NoteDao {
 
     @Query("SELECT * FROM notes WHERE categoryId IS NULL AND isDeleted = 0 AND isArchived = 0 ORDER BY updatedAt DESC")
     fun getUncategorizedNotes(): Flow<List<NoteEntity>>
+
+    @Query("SELECT * FROM notes WHERE isPinned = 1 AND isDeleted = 0 AND isArchived = 0 ORDER BY updatedAt DESC")
+    fun getPinnedNotes(): Flow<List<NoteEntity>>
+
+    @Query("UPDATE notes SET isPinned = :isPinned WHERE id = :id")
+    suspend fun togglePin(id: Long, isPinned: Boolean)
+
+    @Query("SELECT categoryId, COUNT(*) as count FROM notes WHERE isDeleted = 0 AND isArchived = 0 AND categoryId IS NOT NULL GROUP BY categoryId")
+    fun getNoteCounts(): Flow<List<CategoryNoteCount>>
 }

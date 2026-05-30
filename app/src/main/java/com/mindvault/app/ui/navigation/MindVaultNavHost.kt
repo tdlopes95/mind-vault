@@ -108,6 +108,9 @@ fun MindVaultNavHost(
                 NoteEditorScreen(
                     noteId = if (rawId == -1L) null else rawId,
                     onNavigateBack = { navController.popBackStack() },
+                    onNavigateToNote = { targetId ->
+                        navController.navigate(Screen.NoteEditor.createRoute(targetId))
+                    },
                 )
             }
 

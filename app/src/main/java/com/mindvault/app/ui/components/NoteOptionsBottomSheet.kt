@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,8 +40,10 @@ import com.mindvault.app.util.NoteColors
 @Composable
 fun NoteOptionsBottomSheet(
     isFavorite: Boolean,
+    isPinned: Boolean = false,
     selectedColor: Int,
     onFavoriteToggle: () -> Unit,
+    onPinToggle: () -> Unit = {},
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     onColorSelected: (Int) -> Unit,
@@ -72,6 +76,11 @@ fun NoteOptionsBottomSheet(
             }
             Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider()
+            OptionRow(
+                icon = if (isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                label = if (isPinned) "Unpin" else "Pin",
+                onClick = { onPinToggle(); onDismiss() },
+            )
             OptionRow(
                 icon = if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarOutline,
                 label = if (isFavorite) "Remove from favorites" else "Add to favorites",

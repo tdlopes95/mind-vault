@@ -20,4 +20,6 @@ interface NoteRepositoryInterface {
     suspend fun toggleArchive(id: Long, isArchived: Boolean)
     suspend fun purgeOldDeletedNotes(cutoffTimestamp: Long)
     suspend fun assignCategory(noteId: Long, categoryId: Long?)
+    fun getPinnedNotes(): Flow<List<Note>>
+    suspend fun togglePin(id: Long, isPinned: Boolean)
 }

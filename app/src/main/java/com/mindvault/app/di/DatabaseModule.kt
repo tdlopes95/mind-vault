@@ -3,8 +3,10 @@ package com.mindvault.app.di
 import android.content.Context
 import androidx.room.Room
 import com.mindvault.app.data.local.MindVaultDatabase
+import com.mindvault.app.data.local.dao.AttachmentDao
 import com.mindvault.app.data.local.dao.CategoryDao
 import com.mindvault.app.data.local.dao.NoteDao
+import com.mindvault.app.data.local.dao.NoteLinkDao
 import com.mindvault.app.data.local.dao.TagDao
 import dagger.Module
 import dagger.Provides
@@ -21,7 +23,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): MindVaultDatabase =
         Room.databaseBuilder(context, MindVaultDatabase::class.java, "mindvault.db")
-            .addMigrations(MindVaultDatabase.MIGRATION_1_2)
+            .addMigrations(MindVaultDatabase.MIGRATION_1_2, MindVaultDatabase.MIGRATION_2_3)
             .build()
 
     @Provides
@@ -32,4 +34,10 @@ object DatabaseModule {
 
     @Provides
     fun provideCategoryDao(db: MindVaultDatabase): CategoryDao = db.categoryDao()
+
+    @Provides
+    fun provideNoteLinkDao(db: MindVaultDatabase): NoteLinkDao = db.noteLinkDao()
+
+    @Provides
+    fun provideAttachmentDao(db: MindVaultDatabase): AttachmentDao = db.attachmentDao()
 }
