@@ -3,8 +3,12 @@ package com.mindvault.app.ui.screens.editor
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mindvault.app.data.model.Category
 import com.mindvault.app.data.model.Note
+import com.mindvault.app.data.model.Tag
+import com.mindvault.app.data.repository.CategoryRepositoryInterface
 import com.mindvault.app.data.repository.NoteRepositoryInterface
+import com.mindvault.app.data.repository.TagRepositoryInterface
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,31 +26,47 @@ data class EditorUiState(
     val isNewNote: Boolean = true,
     val lastEditedTimestamp: Long = System.currentTimeMillis(),
     val shouldNavigateBack: Boolean = false,
+    val tags: List<Tag> = emptyList(),
+    val allTags: List<Tag> = emptyList(),
+    val categoryId: Long? = null,
+    val category: Category? = null,
+    val allCategories: List<Category> = emptyList(),
 )
 
 @HiltViewModel
 class NoteEditorViewModel @Inject constructor(
     private val repository: NoteRepositoryInterface,
+    private val tagRepository: TagRepositoryInterface,
+    private val categoryRepository: CategoryRepositoryInterface,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val initialNoteId: Long? =
         savedStateHandle.get<Long>("noteId")?.takeIf { it != -1L }
 
-    // Tracks the persisted ID: null until first insert, then set after insert
     private var savedNoteId: Long? = initialNoteId
-
-    // Cached loaded note — preserves fields we don't edit (createdAt, isArchived, etc.)
     private var loadedNote: Note? = null
 
     private val _uiState = MutableStateFlow(EditorUiState(isNewNote = initialNoteId == null))
     val uiState: StateFlow<EditorUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            tagRepository.getAllTags().collect { tags ->
+                _uiState.update { it.copy(allTags = tags) }
+            }
+        }
+        viewModelScope.launch {
+            categoryRepository.getAllCategories().collect { cats ->
+                _uiState.update { it.copy(allCategories = cats) }
+            }
+        }
         if (initialNoteId != null) {
             viewModelScope.launch {
                 repository.getNoteById(initialNoteId).first()?.let { note ->
                     loadedNote = note
+                    val tags = tagRepository.getTagsForNote(initialNoteId).first()
+                    val category = note.categoryId?.let { categoryRepository.getCategoryById(it).first() }
                     _uiState.value = EditorUiState(
                         title = note.title,
                         content = note.content,
@@ -54,6 +74,11 @@ class NoteEditorViewModel @Inject constructor(
                         isFavorite = note.isFavorite,
                         isNewNote = false,
                         lastEditedTimestamp = note.updatedAt,
+                        tags = tags,
+                        categoryId = note.categoryId,
+                        category = category,
+                        allTags = _uiState.value.allTags,
+                        allCategories = _uiState.value.allCategories,
                     )
                 }
             }
@@ -76,6 +101,38 @@ class NoteEditorViewModel @Inject constructor(
         _uiState.update { it.copy(isFavorite = !it.isFavorite) }
     }
 
+    fun addTag(tag: Tag) {
+        _uiState.update { it.copy(tags = (it.tags + tag).distinctBy { t -> t.id }) }
+        savedNoteId?.let { id ->
+            viewModelScope.launch { tagRepository.addTagToNote(id, tag.id) }
+        }
+    }
+
+    fun removeTag(tag: Tag) {
+        _uiState.update { it.copy(tags = it.tags.filter { t -> t.id != tag.id }) }
+        savedNoteId?.let { id ->
+            viewModelScope.launch { tagRepository.removeTagFromNote(id, tag.id) }
+        }
+    }
+
+    fun createAndAddTag(name: String) {
+        viewModelScope.launch {
+            val tagId = tagRepository.insertTag(name)
+            if (tagId > 0) {
+                val newTag = tagRepository.getAllTags().first().find { it.id == tagId }
+                    ?: Tag(id = tagId, name = name)
+                addTag(newTag)
+            }
+        }
+    }
+
+    fun setCategory(category: Category?) {
+        _uiState.update { it.copy(categoryId = category?.id, category = category) }
+        savedNoteId?.let { id ->
+            viewModelScope.launch { repository.assignCategory(id, category?.id) }
+        }
+    }
+
     fun saveNote() {
         val state = _uiState.value
         if (state.title.isBlank() && state.content.isBlank()) return
@@ -90,11 +147,13 @@ class NoteEditorViewModel @Inject constructor(
                         content = state.content,
                         color = state.color,
                         isFavorite = state.isFavorite,
+                        categoryId = state.categoryId,
                         createdAt = now,
                         updatedAt = now,
                     )
                 )
                 savedNoteId = id
+                state.tags.forEach { tag -> tagRepository.addTagToNote(id, tag.id) }
                 _uiState.update { it.copy(isNewNote = false, lastEditedTimestamp = now) }
             } else {
                 val base = loadedNote ?: Note(id = currentId, createdAt = now)
@@ -103,6 +162,7 @@ class NoteEditorViewModel @Inject constructor(
                     content = state.content,
                     color = state.color,
                     isFavorite = state.isFavorite,
+                    categoryId = state.categoryId,
                     updatedAt = now,
                 )
                 repository.updateNote(updated)

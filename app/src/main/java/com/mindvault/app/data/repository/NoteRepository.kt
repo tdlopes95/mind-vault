@@ -23,6 +23,9 @@ class NoteRepository @Inject constructor(private val dao: NoteDao) : NoteReposit
 
     override fun searchNotes(query: String): Flow<List<Note>> = dao.searchNotes(query).map { it.map(NoteEntity::toDomain) }
 
+    override fun searchNotesFts(query: String): Flow<List<Note>> =
+        dao.searchNotesFts("$query*").map { it.map(NoteEntity::toDomain) }
+
     override suspend fun insertNote(note: Note): Long = dao.insertNote(note.toEntity())
 
     override suspend fun updateNote(note: Note) = dao.updateNote(note.toEntity())
@@ -38,6 +41,8 @@ class NoteRepository @Inject constructor(private val dao: NoteDao) : NoteReposit
     override suspend fun toggleArchive(id: Long, isArchived: Boolean) = dao.toggleArchive(id, isArchived)
 
     override suspend fun purgeOldDeletedNotes(cutoffTimestamp: Long) = dao.purgeOldDeletedNotes(cutoffTimestamp)
+
+    override suspend fun assignCategory(noteId: Long, categoryId: Long?) = dao.assignCategory(noteId, categoryId)
 }
 
 private fun NoteEntity.toDomain() = Note(
@@ -51,6 +56,7 @@ private fun NoteEntity.toDomain() = Note(
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,
+    categoryId = categoryId,
 )
 
 private fun Note.toEntity() = NoteEntity(
@@ -64,4 +70,5 @@ private fun Note.toEntity() = NoteEntity(
     createdAt = createdAt,
     updatedAt = updatedAt,
     deletedAt = deletedAt,
+    categoryId = categoryId,
 )

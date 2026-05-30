@@ -11,4 +11,6 @@ data class Note(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val deletedAt: Long? = null,
+    val categoryId: Long? = null,
+    val tags: List<Tag> = emptyList(),
 )

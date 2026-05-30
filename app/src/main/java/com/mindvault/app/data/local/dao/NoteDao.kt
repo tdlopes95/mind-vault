@@ -44,6 +44,15 @@ interface NoteDao {
     suspend fun toggleArchive(id: Long, isArchived: Boolean)
 
     @Query("""
+        SELECT notes.* FROM notes
+        INNER JOIN notes_fts ON notes.id = notes_fts.rowid
+        WHERE notes.isDeleted = 0
+          AND notes_fts MATCH :query
+        ORDER BY notes.updatedAt DESC
+    """)
+    fun searchNotesFts(query: String): Flow<List<NoteEntity>>
+
+    @Query("""
         SELECT * FROM notes
         WHERE isDeleted = 0
           AND (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%')
@@ -53,4 +62,13 @@ interface NoteDao {
 
     @Query("DELETE FROM notes WHERE isDeleted = 1 AND deletedAt < :cutoffTimestamp")
     suspend fun purgeOldDeletedNotes(cutoffTimestamp: Long)
+
+    @Query("UPDATE notes SET categoryId = :categoryId WHERE id = :noteId")
+    suspend fun assignCategory(noteId: Long, categoryId: Long?)
+
+    @Query("SELECT * FROM notes WHERE categoryId = :categoryId AND isDeleted = 0 AND isArchived = 0 ORDER BY updatedAt DESC")
+    fun getNotesByCategory(categoryId: Long): Flow<List<NoteEntity>>
+
+    @Query("SELECT * FROM notes WHERE categoryId IS NULL AND isDeleted = 0 AND isArchived = 0 ORDER BY updatedAt DESC")
+    fun getUncategorizedNotes(): Flow<List<NoteEntity>>
 }

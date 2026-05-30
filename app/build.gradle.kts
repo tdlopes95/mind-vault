@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -64,8 +65,13 @@ dependencies {
     // Coroutines
     implementation(libs.coroutines.android)
 
-    // Lifecycle ViewModel Compose
+    // Lifecycle ViewModel + Runtime Compose
     implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
+
+    // Serialization + DataStore
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.datastore.preferences)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
