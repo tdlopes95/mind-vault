@@ -27,8 +27,13 @@ class AttachmentRepository @Inject constructor(
         val dir = File(context.filesDir, "attachments/$noteId").also { it.mkdirs() }
         val destFile = File(dir, safeFileName)
 
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            destFile.outputStream().use { output -> input.copyTo(output) }
+        try {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                destFile.outputStream().use { output -> input.copyTo(output) }
+            }
+        } catch (e: Exception) {
+            destFile.delete()
+            throw IllegalStateException("Failed to save attachment: ${e.message}", e)
         }
 
         val relativePath = "attachments/$noteId/$safeFileName"

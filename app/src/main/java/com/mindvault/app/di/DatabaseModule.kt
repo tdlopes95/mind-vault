@@ -23,7 +23,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): MindVaultDatabase =
         Room.databaseBuilder(context, MindVaultDatabase::class.java, "mindvault.db")
-            .addMigrations(MindVaultDatabase.MIGRATION_1_2, MindVaultDatabase.MIGRATION_2_3)
+            .addMigrations(MindVaultDatabase.MIGRATION_1_2, MindVaultDatabase.MIGRATION_2_3, MindVaultDatabase.MIGRATION_3_4)
             .build()
 
     @Provides

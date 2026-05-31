@@ -139,3 +139,28 @@
 
 - `CategorySuggestionEngine` uses `getActiveNoteIdsForTag()` from `TagRepositoryInterface` (already available) to implement tag-to-category correlation.
 - Category profile for content similarity built by concatenating title+content of up to 100 notes per category to avoid OOM on large datasets.
+
+## Phase 5 Deviations
+
+### DB Version
+
+- DB bumped to version 4 for the new indexes on `notes` table (MIGRATION_3_4). Adds: `isDeleted`, `isArchived`, `isFavorite`, `isPinned`, `updatedAt`, and composite `(isDeleted, isArchived)` indexes.
+
+### App Icon
+
+- Adaptive icon XMLs placed in both `mipmap-anydpi/` (pre-existing, now references `@mipmap/`) and new `mipmap-anydpi-v26/` (references `@drawable/`).
+- PNG icon layers placed in `drawable/` (for `@drawable/` reference in adaptive icon) and density-specific `mipmap-*dpi/` folders (legacy fallbacks).
+- `AppDrawer` header upgraded with `Image(painterResource(R.drawable.ic_launcher_foreground))` + branded `Color(0xFF26215C)` background.
+
+### Animations
+
+- `NoteGrid` entrance animation: `Animatable(0f)` per item with `LaunchedEffect(note.id)`; stagger capped at 400ms max. `rememberSaveable { hasAnimated }` prevents re-animation on revisit.
+- FAB scroll visibility: `NestedScrollConnection` at the content `Box` level — threshold ±10px to prevent flickering on tiny scrolls. Applied in addition to TopAppBar's own nestedScroll.
+- Swipe-to-delete background: `animateColorAsState` on `dismissState.targetValue != Settled` → `colorScheme.error`.
+- Star pulse: `Animatable(1f)` with spring dampingRatio=0.3 → 1.4x → back to 1f.
+
+### Testing
+
+- `NoteEditorViewModelTest` updated to use full 9-arg constructor with all fake repositories (TagSuggestionEngine + RelatedNotesEngine + CategorySuggestionEngine constructed with fake repos, not mocked).
+- `FakeNoteRepository` extracted to `test/data/repository/FakeNoteRepository.kt` (shared); original inlined copy removed from test file.
+- `rememberSwipeToDismissBoxState(confirmValueChange = ...)` is deprecated in newer Compose but still functional; no replacement available that preserves this swipe-to-delete flow.

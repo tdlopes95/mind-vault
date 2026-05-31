@@ -7,4 +7,11 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- MindVault brand colors -->
+    <color name="brand_purple_dark">#26215C</color>
+    <color name="brand_purple">#534AB7</color>
+    <color name="brand_purple_light">#AFA9EC</color>
+    <color name="brand_amber">#EF9F27</color>
+    <color name="brand_amber_light">#FAEEDA</color>
 </resources>

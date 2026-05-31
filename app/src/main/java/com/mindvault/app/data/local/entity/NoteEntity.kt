@@ -15,7 +15,15 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.SET_NULL,
         ),
     ],
-    indices = [Index(value = ["categoryId"])],
+    indices = [
+        Index(value = ["categoryId"]),
+        Index(value = ["isDeleted"]),
+        Index(value = ["isArchived"]),
+        Index(value = ["isFavorite"]),
+        Index(value = ["isPinned"]),
+        Index(value = ["updatedAt"]),
+        Index(value = ["isDeleted", "isArchived"]),
+    ],
 )
 data class NoteEntity(
     @PrimaryKey(autoGenerate = true)

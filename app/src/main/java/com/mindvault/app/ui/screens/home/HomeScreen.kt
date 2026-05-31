@@ -1,8 +1,13 @@
 package com.mindvault.app.ui.screens.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,12 +28,13 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
@@ -57,6 +63,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -64,9 +71,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -80,7 +94,6 @@ import com.mindvault.app.ui.components.NoteCard
 import com.mindvault.app.ui.components.NoteOptionsBottomSheet
 import com.mindvault.app.ui.components.TagFilterChip
 import kotlinx.coroutines.launch
-import androidx.compose.ui.text.font.FontStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,11 +108,23 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val haptic = LocalHapticFeedback.current
 
     var searchVisible by rememberSaveable { mutableStateOf(false) }
     var searchFocused by remember { mutableStateOf(false) }
     var noteForOptions by remember { mutableStateOf<Note?>(null) }
     var noteToDelete by remember { mutableStateOf<Note?>(null) }
+    var isFabVisible by rememberSaveable { mutableStateOf(true) }
+
+    val fabScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < -10) isFabVisible = false
+                else if (available.y > 10) isFabVisible = true
+                return Offset.Zero
+            }
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -130,7 +155,6 @@ fun HomeScreen(
                         }
                     },
                     actions = {
-                        // Dashboard / Grid toggle
                         IconButton(onClick = viewModel::toggleDashboardMode) {
                             Icon(
                                 imageVector = if (uiState.isDashboardMode) Icons.Default.GridView else Icons.Default.Dashboard,
@@ -144,7 +168,6 @@ fun HomeScreen(
                     scrollBehavior = scrollBehavior,
                 )
 
-                // Recent searches
                 if (searchVisible && uiState.searchQuery.isBlank() && uiState.recentSearches.isNotEmpty()) {
                     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
                         Row(
@@ -168,7 +191,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Search filter chips (active search only)
                 if (searchVisible && uiState.searchQuery.isNotBlank()) {
                     SearchFilterRow(
                         filters = uiState.searchFilters,
@@ -180,7 +202,6 @@ fun HomeScreen(
                     )
                 }
 
-                // Tag filter chips (grid mode only)
                 if (uiState.allTags.isNotEmpty() && !searchVisible && !uiState.isDashboardMode) {
                     LazyRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -199,8 +220,23 @@ fun HomeScreen(
             }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onNewNote) {
-                Icon(Icons.Default.Add, contentDescription = "New note")
+            AnimatedVisibility(
+                visible = isFabVisible,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut(),
+            ) {
+                var lastFabClick by remember { mutableLongStateOf(0L) }
+                FloatingActionButton(
+                    onClick = {
+                        val now = System.currentTimeMillis()
+                        if (now - lastFabClick > 500L) {
+                            lastFabClick = now
+                            onNewNote()
+                        }
+                    }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "New note")
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -209,7 +245,8 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .imePadding(),
+                .imePadding()
+                .nestedScroll(fabScrollConnection),
         ) {
             if (uiState.isDashboardMode && uiState.searchQuery.isBlank()) {
                 DashboardView(
@@ -224,7 +261,6 @@ fun HomeScreen(
                 )
             } else {
                 Column {
-                    // Fuzzy correction banner
                     if (uiState.fuzzyCorrection != null && uiState.searchQuery.isNotBlank()) {
                         FuzzyBanner(
                             correction = uiState.fuzzyCorrection!!,
@@ -247,6 +283,7 @@ fun HomeScreen(
                             onLongPress = { note -> noteForOptions = note },
                             onFavoriteToggle = viewModel::toggleFavorite,
                             onSwipeDelete = { note ->
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 viewModel.deleteNote(note.id)
                                 scope.launch {
                                     val result = snackbarHostState.showSnackbar(
@@ -269,9 +306,18 @@ fun HomeScreen(
             isFavorite = note.isFavorite,
             isPinned = note.isPinned,
             selectedColor = note.color,
-            onFavoriteToggle = { viewModel.toggleFavorite(note) },
-            onPinToggle = { viewModel.togglePin(note) },
-            onArchive = { viewModel.archiveNote(note.id) },
+            onFavoriteToggle = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                viewModel.toggleFavorite(note)
+            },
+            onPinToggle = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                viewModel.togglePin(note)
+            },
+            onArchive = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                viewModel.archiveNote(note.id)
+            },
             onDelete = { noteToDelete = note },
             onColorSelected = { color -> viewModel.changeNoteColor(note, color) },
             onDismiss = { noteForOptions = null },
@@ -281,6 +327,7 @@ fun HomeScreen(
     noteToDelete?.let { note ->
         ConfirmDeleteDialog(
             onConfirm = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.deleteNote(note.id)
                 noteToDelete = null
                 noteForOptions = null
@@ -304,7 +351,6 @@ private fun DashboardView(
     LazyColumn(
         contentPadding = PaddingValues(bottom = 88.dp),
     ) {
-        // Quick Actions
         item {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -318,7 +364,6 @@ private fun DashboardView(
             }
         }
 
-        // Pinned Notes
         if (uiState.pinnedNotes.isNotEmpty()) {
             item {
                 SectionHeader(title = "Pinned", onSeeAll = onSeeAllPinned.takeIf { uiState.pinnedNotes.size > 4 })
@@ -340,7 +385,6 @@ private fun DashboardView(
             }
         }
 
-        // Recent Notes
         if (uiState.recentNotes.isNotEmpty()) {
             item {
                 SectionHeader(title = "Recent", onSeeAll = onSeeAllRecent)
@@ -356,7 +400,6 @@ private fun DashboardView(
             }
         }
 
-        // Favorites
         if (uiState.favoriteNotes.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -379,7 +422,6 @@ private fun DashboardView(
             }
         }
 
-        // Categories
         if (uiState.categories.isNotEmpty()) {
             item {
                 SectionHeader(title = "Categories", onSeeAll = null)
@@ -405,7 +447,6 @@ private fun DashboardView(
             item { Spacer(modifier = Modifier.height(8.dp)) }
         }
 
-        // Empty state
         if (uiState.pinnedNotes.isEmpty() && uiState.recentNotes.isEmpty() && uiState.favoriteNotes.isEmpty() && uiState.categories.isEmpty()) {
             item {
                 EmptyState(message = "Your vault is empty")
@@ -575,11 +616,26 @@ private fun NoteGrid(
     onFavoriteToggle: (Note) -> Unit,
     onSwipeDelete: (Note) -> Unit,
 ) {
+    var hasAnimated by rememberSaveable { mutableStateOf(false) }
+
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
         contentPadding = PaddingValues(8.dp),
     ) {
-        items(notes, key = { it.id }) { note ->
+        itemsIndexed(notes, key = { _, note -> note.id }) { index, note ->
+            val animAlpha = remember(note.id) { Animatable(if (hasAnimated) 1f else 0f) }
+
+            LaunchedEffect(note.id) {
+                if (animAlpha.value < 1f) {
+                    kotlinx.coroutines.delay((index * 40L).coerceAtMost(400L))
+                    animAlpha.animateTo(1f, tween(200))
+                }
+            }
+
+            LaunchedEffect(notes.isNotEmpty()) {
+                if (notes.isNotEmpty()) hasAnimated = true
+            }
+
             val dismissState = rememberSwipeToDismissBoxState(
                 confirmValueChange = { value ->
                     if (value == SwipeToDismissBoxValue.StartToEnd || value == SwipeToDismissBoxValue.EndToStart) {
@@ -591,10 +647,30 @@ private fun NoteGrid(
 
             LaunchedEffect(note.id) { dismissState.reset() }
 
+            val swipeBgColor by animateColorAsState(
+                targetValue = if (dismissState.targetValue != SwipeToDismissBoxValue.Settled)
+                    MaterialTheme.colorScheme.error
+                else Color.Transparent,
+                label = "swipe_bg",
+            )
+
             SwipeToDismissBox(
                 state = dismissState,
-                backgroundContent = {},
-                modifier = Modifier.padding(4.dp),
+                backgroundContent = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(4.dp)
+                            .background(swipeBgColor, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 20.dp),
+                        contentAlignment = Alignment.CenterEnd,
+                    ) {
+                        if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                        }
+                    }
+                },
+                modifier = Modifier.padding(4.dp).alpha(animAlpha.value),
             ) {
                 NoteCard(
                     note = note,

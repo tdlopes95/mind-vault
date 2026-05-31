@@ -29,7 +29,7 @@ import com.mindvault.app.data.local.entity.TagEntity
         NoteLinkEntity::class,
         AttachmentEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 @TypeConverters(DateConverter::class)
@@ -111,6 +111,17 @@ abstract class MindVaultDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_AttachmentEntity_noteId` ON `AttachmentEntity` (`noteId`)")
 
                 db.execSQL("ALTER TABLE `notes` ADD COLUMN `isPinned` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notes_isDeleted` ON `notes` (`isDeleted`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notes_isArchived` ON `notes` (`isArchived`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notes_isFavorite` ON `notes` (`isFavorite`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notes_isPinned` ON `notes` (`isPinned`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notes_updatedAt` ON `notes` (`updatedAt`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notes_isDeleted_isArchived` ON `notes` (`isDeleted`, `isArchived`)")
             }
         }
     }
