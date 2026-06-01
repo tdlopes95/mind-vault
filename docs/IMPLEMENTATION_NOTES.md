@@ -140,6 +140,45 @@
 - `CategorySuggestionEngine` uses `getActiveNoteIdsForTag()` from `TagRepositoryInterface` (already available) to implement tag-to-category correlation.
 - Category profile for content similarity built by concatenating title+content of up to 100 notes per category to avoid OOM on large datasets.
 
+## Final Polish Deviations
+
+### Task 1A — Attachment Visibility Fix
+- Root cause: `_uiState.value = EditorUiState(...)` in the note-loading coroutine replaced the entire state, resetting `attachments = emptyList()` and racing with the attachment Flow collector.
+- Fix: Changed to `_uiState.update { it.copy(...) }` so only note metadata fields are overwritten; `attachments` and `linkedNotes` are left intact for their own flow collectors.
+- Also: `addAttachment()` now auto-saves new notes before inserting (was silently returning early when `savedNoteId == null`). Minimal save logic inlined in `addAttachment()` to avoid refactoring the full `saveNote()` coroutine.
+
+### Task 1B — Dashboard Title/Search Overlap
+- Switched `TopAppBar` to `CenterAlignedTopAppBar`.
+- `CollapsibleSearchBar` component is no longer used in the title slot (it rendered a search icon button when collapsed, which competed with the title text).
+- Title slot now holds only: `Text("MindVault")` when collapsed, or an inline `TextField` when expanded.
+- Search icon moved to `actions` alongside dashboard toggle and settings.
+- `CollapsibleSearchBar.kt` file retained unchanged — it is no longer used but kept for possible future use.
+
+### Task 2 — Visual Refresh
+- `NoteCard`: 16dp corners, `0.dp` elevation, `BorderStroke(1.dp)` border. Color tints use `alpha = 0.15f` (subtle wash); border uses `alpha = 0.35f`. Container color falls back to `surfaceContainerLow` (not `surfaceVariant`) for no-color notes.
+- `NoteColors.presets` in `Constants.kt` replaced with muted palette (dusty rose, warm sand, soft sage, muted teal, soft sky, lavender, mauve, parchment).
+- `SectionHeader` in `HomeScreen.kt` gains an optional `icon: ImageVector?` parameter. Pinned/Recent/Favorites/Categories sections now show Material icons (PushPin, AccessTime, Star, Category).
+- `fontStyle.lineHeight = 18.sp` added to note content text in NoteCard.
+- Task 2E (EditorBottomBar polish) and 2F (dark mode refinement) not changed — existing implementation was already acceptable.
+
+### Task 3 — Tags UX Overhaul
+- `InlineTagInput` composable added directly to `NoteEditorScreen.kt` (not a separate file) to keep it co-located with its only caller.
+- The `AssistChip("+ Tag")` button replaced with `InlineTagInput`. The `TagPickerBottomSheet` is still triggered via `onBrowseAll` callback on `InlineTagInput` for power users (long-press UX is out of scope; it's accessed via the bottom sheet).
+- `InputChip` height = 28dp to stay compact inline with the `BasicTextField`.
+- Autocomplete dropdown is a `Surface` + `Column` below the FlowRow — no `DropdownMenu` to keep positioning simple.
+- ViewModel: no changes. Existing `addTag`, `removeTag`, `createAndAddTag`, `allTags` in `EditorUiState` are sufficient.
+
+### Task 4 — Quick Capture Widget
+- Glance 1.1.1 added (`glance-appwidget`, `glance-material3`).
+- Created `ui/widget/MindVaultWidget.kt`, `MindVaultWidgetReceiver.kt`, `MindVaultWidgetContent.kt`.
+- Widget uses `SizeMode.Responsive` with 120dp and 250dp width breakpoints for compact/expanded layouts.
+- Intent extras approach used (`putExtra("widget_action", "...")`) instead of `ActionParameters` to avoid Glance parameter serialization. `MainActivity` reads `intent.getStringExtra("widget_action")` and passes it as `initialWidgetAction` to `MindVaultNavHost`.
+- `CircleIconButton` not available in Glance API; search action uses a text `Box` button instead.
+- `"quick_idea"` action navigates to the editor (same as `"new_note"`) without pre-filling — threading a `quickIdea` flag through the nav route would require a new nav argument, deferred as out of scope.
+- `HomeViewModel.openSearch()` / `clearSearchExpandedRequest()` functions added; `searchExpandedRequest: StateFlow<Boolean>` is a separate flow (not threaded into the complex `combine` chain). `HomeScreen` observes it via `LaunchedEffect` and opens the search bar.
+- `res/xml/mindvault_widget_info.xml` and `res/layout/widget_loading.xml` created. No `widget_preview.xml` — `previewLayout` attribute omitted from widget info XML since Glance handles preview via the live widget view.
+- Widget receiver declared in `AndroidManifest.xml`.
+
 ## Phase 5 Deviations
 
 ### DB Version

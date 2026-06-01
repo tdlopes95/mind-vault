@@ -37,10 +37,18 @@ import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -57,7 +65,8 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -87,7 +96,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mindvault.app.data.model.Category
 import com.mindvault.app.data.model.Note
-import com.mindvault.app.ui.components.CollapsibleSearchBar
 import com.mindvault.app.ui.components.ConfirmDeleteDialog
 import com.mindvault.app.ui.components.EmptyState
 import com.mindvault.app.ui.components.NoteCard
@@ -105,6 +113,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val searchExpandedRequest by viewModel.searchExpandedRequest.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -112,6 +121,14 @@ fun HomeScreen(
 
     var searchVisible by rememberSaveable { mutableStateOf(false) }
     var searchFocused by remember { mutableStateOf(false) }
+
+    LaunchedEffect(searchExpandedRequest) {
+        if (searchExpandedRequest) {
+            searchVisible = true
+            searchFocused = true
+            viewModel.clearSearchExpandedRequest()
+        }
+    }
     var noteForOptions by remember { mutableStateOf<Note?>(null) }
     var noteToDelete by remember { mutableStateOf<Note?>(null) }
     var isFabVisible by rememberSaveable { mutableStateOf(true) }
@@ -130,22 +147,35 @@ fun HomeScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             Column {
-                TopAppBar(
+                CenterAlignedTopAppBar(
                     title = {
                         AnimatedVisibility(visible = !searchVisible, enter = fadeIn(), exit = fadeOut()) {
-                            Text("MindVault")
+                            Text("MindVault", style = MaterialTheme.typography.titleLarge)
                         }
-                        CollapsibleSearchBar(
-                            visible = searchVisible,
-                            query = uiState.searchQuery,
-                            onQueryChange = viewModel::onSearchQueryChanged,
-                            onOpen = { searchVisible = true; searchFocused = true },
-                            onClose = {
-                                searchVisible = false
-                                searchFocused = false
-                                viewModel.onSearchQueryChanged("")
-                            },
-                        )
+                        AnimatedVisibility(visible = searchVisible, enter = fadeIn(), exit = fadeOut()) {
+                            TextField(
+                                value = uiState.searchQuery,
+                                onValueChange = viewModel::onSearchQueryChanged,
+                                placeholder = { Text("Search notes…") },
+                                singleLine = true,
+                                trailingIcon = {
+                                    IconButton(onClick = {
+                                        searchVisible = false
+                                        searchFocused = false
+                                        viewModel.onSearchQueryChanged("")
+                                    }) {
+                                        Icon(Icons.Outlined.Close, contentDescription = "Close search")
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                ),
+                            )
+                        }
                     },
                     navigationIcon = {
                         if (onOpenDrawer != null) {
@@ -155,6 +185,11 @@ fun HomeScreen(
                         }
                     },
                     actions = {
+                        if (!searchVisible) {
+                            IconButton(onClick = { searchVisible = true; searchFocused = true }) {
+                                Icon(Icons.Default.Search, contentDescription = "Search")
+                            }
+                        }
                         IconButton(onClick = viewModel::toggleDashboardMode) {
                             Icon(
                                 imageVector = if (uiState.isDashboardMode) Icons.Default.GridView else Icons.Default.Dashboard,
@@ -366,7 +401,7 @@ private fun DashboardView(
 
         if (uiState.pinnedNotes.isNotEmpty()) {
             item {
-                SectionHeader(title = "Pinned", onSeeAll = onSeeAllPinned.takeIf { uiState.pinnedNotes.size > 4 })
+                SectionHeader(title = "Pinned", icon = Icons.Default.PushPin, onSeeAll = onSeeAllPinned.takeIf { uiState.pinnedNotes.size > 4 })
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -387,7 +422,7 @@ private fun DashboardView(
 
         if (uiState.recentNotes.isNotEmpty()) {
             item {
-                SectionHeader(title = "Recent", onSeeAll = onSeeAllRecent)
+                SectionHeader(title = "Recent", icon = Icons.Default.AccessTime, onSeeAll = onSeeAllRecent)
             }
             items(uiState.recentNotes, key = { "recent_${it.id}" }) { note ->
                 NoteCard(
@@ -403,7 +438,7 @@ private fun DashboardView(
         if (uiState.favoriteNotes.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
-                SectionHeader(title = "Favorites", onSeeAll = onSeeAllFavorites.takeIf { uiState.favoriteNotes.size > 4 })
+                SectionHeader(title = "Favorites", icon = Icons.Default.Star, onSeeAll = onSeeAllFavorites.takeIf { uiState.favoriteNotes.size > 4 })
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -424,7 +459,7 @@ private fun DashboardView(
 
         if (uiState.categories.isNotEmpty()) {
             item {
-                SectionHeader(title = "Categories", onSeeAll = null)
+                SectionHeader(title = "Categories", icon = Icons.Default.Category, onSeeAll = null)
             }
             items(
                 uiState.categories.chunked(2),
@@ -459,16 +494,27 @@ private fun DashboardView(
 private fun SectionHeader(
     title: String,
     onSeeAll: (() -> Unit)?,
+    icon: ImageVector? = null,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (icon != null) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
         )
         if (onSeeAll != null) {
             TextButton(onClick = onSeeAll) {

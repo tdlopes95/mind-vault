@@ -76,6 +76,10 @@ dependencies {
     // Coil (image loading)
     implementation(libs.coil.compose)
 
+    // Glance (home screen widget)
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
+
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
     androidTestImplementation(libs.coroutines.test)

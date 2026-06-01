@@ -104,20 +104,22 @@ class NoteEditorViewModel @Inject constructor(
                     loadedNote = note
                     val tags = tagRepository.getTagsForNote(initialNoteId).first()
                     val category = note.categoryId?.let { categoryRepository.getCategoryById(it).first() }
-                    _uiState.value = EditorUiState(
-                        title = note.title,
-                        content = note.content,
-                        color = note.color,
-                        isFavorite = note.isFavorite,
-                        isPinned = note.isPinned,
-                        isNewNote = false,
-                        lastEditedTimestamp = note.updatedAt,
-                        tags = tags,
-                        categoryId = note.categoryId,
-                        category = category,
-                        allTags = _uiState.value.allTags,
-                        allCategories = _uiState.value.allCategories,
-                    )
+                    // Use update{copy} instead of .value= to avoid overwriting fields managed
+                    // by parallel flow collectors (attachments, linkedNotes).
+                    _uiState.update {
+                        it.copy(
+                            title = note.title,
+                            content = note.content,
+                            color = note.color,
+                            isFavorite = note.isFavorite,
+                            isPinned = note.isPinned,
+                            isNewNote = false,
+                            lastEditedTimestamp = note.updatedAt,
+                            tags = tags,
+                            categoryId = note.categoryId,
+                            category = category,
+                        )
+                    }
                 }
             }
             viewModelScope.launch {
@@ -217,8 +219,38 @@ class NoteEditorViewModel @Inject constructor(
     }
 
     fun addAttachment(uri: Uri) {
-        val noteId = savedNoteId ?: return
         viewModelScope.launch {
+            val noteId = savedNoteId ?: run {
+                val state = _uiState.value
+                if (state.title.isBlank() && state.content.isBlank()) return@launch
+                val now = System.currentTimeMillis()
+                val id = repository.insertNote(
+                    Note(
+                        title = state.title,
+                        content = state.content,
+                        color = state.color,
+                        isFavorite = state.isFavorite,
+                        isPinned = state.isPinned,
+                        categoryId = state.categoryId,
+                        createdAt = now,
+                        updatedAt = now,
+                    )
+                )
+                savedNoteId = id
+                state.tags.forEach { tag -> tagRepository.addTagToNote(id, tag.id) }
+                _uiState.update { it.copy(isNewNote = false, lastEditedTimestamp = now) }
+                viewModelScope.launch {
+                    noteLinkRepository.getLinkedNotes(id).collect { linked ->
+                        _uiState.update { it.copy(linkedNotes = linked) }
+                    }
+                }
+                viewModelScope.launch {
+                    attachmentRepository.getAttachmentsForNote(id).collect { list ->
+                        _uiState.update { it.copy(attachments = list) }
+                    }
+                }
+                id
+            }
             attachmentRepository.addAttachment(noteId, uri)
         }
     }

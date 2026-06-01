@@ -18,6 +18,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
@@ -72,6 +73,9 @@ class HomeViewModel @Inject constructor(
     private val activeFilter = MutableStateFlow(HomeFilter.All)
     private val searchFilters = MutableStateFlow(SearchFilters())
     private val fuzzyCorrection = MutableStateFlow<String?>(null)
+
+    private val _searchExpandedRequest = MutableStateFlow(false)
+    val searchExpandedRequest: StateFlow<Boolean> = _searchExpandedRequest.asStateFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     private val baseNotesFlow = combine(searchQuery.debounce(200), activeFilter) { q, f -> Pair(q, f) }
@@ -309,5 +313,13 @@ class HomeViewModel @Inject constructor(
     fun applyFuzzyCorrection(correctedQuery: String) {
         searchQuery.value = correctedQuery
         fuzzyCorrection.value = null
+    }
+
+    fun openSearch() {
+        _searchExpandedRequest.value = true
+    }
+
+    fun clearSearchExpandedRequest() {
+        _searchExpandedRequest.value = false
     }
 }

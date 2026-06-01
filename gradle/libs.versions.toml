@@ -18,6 +18,7 @@ ksp = "2.2.10-2.0.2"
 kotlinxSerializationJson = "1.8.1"
 datastorePreferences = "1.1.4"
 coil = "2.7.0"
+glance = "1.1.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -56,6 +57,8 @@ lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-ru
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
+glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -2,6 +2,7 @@ package com.mindvault.app.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.PushPin
@@ -35,6 +37,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mindvault.app.data.model.Note
 import com.mindvault.app.util.DateUtils
 
@@ -48,7 +51,17 @@ fun NoteCard(
     modifier: Modifier = Modifier,
     linkCount: Int = 0,
 ) {
-    val cardColor = if (note.color != 0) Color(note.color) else MaterialTheme.colorScheme.surfaceVariant
+    val hasColor = note.color != 0
+    val cardColor = if (hasColor) {
+        Color(note.color).copy(alpha = 0.15f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+    val borderColor = if (hasColor) {
+        Color(note.color).copy(alpha = 0.35f)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    }
     val haptic = LocalHapticFeedback.current
     val relativeTime = remember(note.updatedAt) { DateUtils.formatRelativeTime(note.updatedAt) }
 
@@ -64,10 +77,12 @@ fun NoteCard(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = cardColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, borderColor),
     ) {
-        Column(modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 12.dp, bottom = 8.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
                     if (note.title.isNotBlank()) {
@@ -75,10 +90,10 @@ fun NoteCard(
                             text = note.title,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                     }
                     if (note.content.isNotBlank()) {
                         Text(
@@ -87,8 +102,9 @@ fun NoteCard(
                             maxLines = 4,
                             overflow = TextOverflow.Ellipsis,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 18.sp,
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
                 }
                 if (note.isPinned) {
@@ -109,7 +125,7 @@ fun NoteCard(
                     Text(
                         text = relativeTime,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
                     if (linkCount > 0) {
                         Icon(

@@ -8,6 +8,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -39,12 +40,20 @@ private val exitToRight = slideOutHorizontally(targetOffsetX = { it }) + fadeOut
 fun MindVaultNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
+    initialWidgetAction: String? = null,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val homeViewModel: HomeViewModel = hiltViewModel()
+
+    LaunchedEffect(initialWidgetAction) {
+        when (initialWidgetAction) {
+            "new_note", "quick_idea" -> navController.navigate(Screen.NoteEditor.createRoute())
+            "search" -> homeViewModel.openSearch()
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,

@@ -16,10 +16,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val widgetAction = intent?.getStringExtra("widget_action")
         setContent {
             MindVaultTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MindVaultNavHost()
+                    MindVaultNavHost(initialWidgetAction = widgetAction)
                 }
             }
         }

@@ -22,10 +22,15 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -51,6 +56,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -66,12 +72,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mindvault.app.ui.components.AttachmentSection
@@ -257,22 +266,18 @@ fun NoteEditorScreen(
                         singleLine = false,
                     )
 
-                    // Tag chips
-                    FlowRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        uiState.tags.forEach { tag ->
-                            TagChipRemovable(tag = tag, onRemove = { viewModel.removeTag(tag) })
-                        }
-                        AssistChip(
-                            onClick = { showTagPicker = true },
-                            label = { Text("+ Tag") },
-                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                        )
-                    }
+                    // Inline tag input (long-press shows bottom sheet for browsing all tags)
+                    InlineTagInput(
+                        tags = uiState.tags,
+                        allTags = uiState.allTags,
+                        onAddTag = { name ->
+                            val existing = uiState.allTags.find { it.name.equals(name, ignoreCase = true) }
+                            if (existing != null) viewModel.addTag(existing) else viewModel.createAndAddTag(name)
+                        },
+                        onRemoveTag = { tag -> viewModel.removeTag(tag) },
+                        onBrowseAll = { showTagPicker = true },
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                    )
 
                     // Category row
                     Row(
@@ -404,6 +409,119 @@ fun NoteEditorScreen(
             },
             onDismiss = { showLinkPicker = false },
         )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@Composable
+private fun InlineTagInput(
+    tags: List<com.mindvault.app.data.model.Tag>,
+    allTags: List<com.mindvault.app.data.model.Tag>,
+    onAddTag: (String) -> Unit,
+    onRemoveTag: (com.mindvault.app.data.model.Tag) -> Unit,
+    onBrowseAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var inputText by rememberSaveable { mutableStateOf("") }
+    var showSuggestions by remember { mutableStateOf(false) }
+
+    val suggestions = remember(inputText, allTags, tags) {
+        if (inputText.length >= 1) {
+            allTags.filter { tag ->
+                tag.name.contains(inputText, ignoreCase = true) && tag !in tags
+            }.take(5)
+        } else emptyList()
+    }
+
+    Column(modifier = modifier) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            tags.forEach { tag ->
+                InputChip(
+                    selected = false,
+                    onClick = { },
+                    label = { Text("#${tag.name}", style = MaterialTheme.typography.labelMedium) },
+                    trailingIcon = {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Remove ${tag.name}",
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clickable { onRemoveTag(tag) },
+                        )
+                    },
+                    modifier = Modifier.height(28.dp),
+                )
+            }
+
+            BasicTextField(
+                value = inputText,
+                onValueChange = {
+                    inputText = it
+                    showSuggestions = it.isNotEmpty()
+                },
+                modifier = Modifier
+                    .widthIn(min = 80.dp, max = 160.dp)
+                    .height(28.dp),
+                textStyle = MaterialTheme.typography.labelMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 14.sp,
+                ),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (inputText.isNotBlank()) {
+                            onAddTag(inputText.trim())
+                            inputText = ""
+                            showSuggestions = false
+                        }
+                    }
+                ),
+                decorationBox = { innerTextField ->
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (inputText.isEmpty()) {
+                            Text(
+                                "Add tag…",
+                                style = MaterialTheme.typography.labelMedium.copy(fontSize = 14.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
+            )
+        }
+
+        if (showSuggestions && suggestions.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 2.dp),
+                shape = RoundedCornerShape(8.dp),
+                tonalElevation = 2.dp,
+                shadowElevation = 4.dp,
+            ) {
+                Column {
+                    suggestions.forEach { tag ->
+                        Text(
+                            "#${tag.name}",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onAddTag(tag.name)
+                                    inputText = ""
+                                    showSuggestions = false
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

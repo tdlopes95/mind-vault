@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Mind Vault</string>
+    <string name="widget_name">MindVault Quick Capture</string>
+    <string name="widget_description">Quick access to create notes and ideas</string>
 </resources>
